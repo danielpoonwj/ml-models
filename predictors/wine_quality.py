@@ -34,8 +34,3 @@ class WineQuality(BasePredictor):
         clf.fit(X_train, y_train)
 
         self.clf = clf
-
-if __name__ == '__main__':
-    predictor = WineQuality(version=1)
-    predictor.train()
-    predictor.save()
