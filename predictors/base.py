@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 import pandas as pd
-from sqlalchemy.orm import defer
+from sqlalchemy.orm import defer, class_mapper
 
 from sklearn.base import BaseEstimator
 from sklearn.externals import joblib
@@ -15,22 +15,45 @@ import models.db
 from predictors import OUTPUT_DIR
 
 
+def camel_to_snake(input_text):
+    temp_list = []
+    for idx, c in enumerate(input_text):
+        if c.isupper() and idx > 0:
+            temp_list.append('_')
+        temp_list.append(c)
+    return ''.join(temp_list).lower()
+
+
 class BasePredictor:
-    def __init__(self, predictor_name, version=1):
-        self.predictor_name = predictor_name
+    def __init__(self, version=1):
+        self.predictor_name = camel_to_snake(self.__class__.__name__)
         self.version = version
+
+        self.ignore_columns = set()
+
+        self.model = getattr(
+            models.db,
+            '%sModel' % self.__class__.__name__
+        )
 
         self.clf = None
 
-    def get_data(self, *ignore_columns):
-        model_name = '%sModel' % self.__class__.__name__
-        db_model = getattr(models.db, model_name)
+    def add_ignore_column(self, column_name):
+        self.ignore_columns.add(column_name)
 
+    def get_column_types(self):
+        return {
+            column.name: column.type.python_type
+            for column in class_mapper(self.model).columns
+            if column.name not in self.ignore_columns
+        }
+
+    def get_data(self):
         session = Session()
         try:
             query = session \
-                .query(db_model) \
-                .options(*[defer(col) for col in ignore_columns])
+                .query(self.model) \
+                .options(*[defer(col) for col in self.ignore_columns])
 
             data = pd.read_sql(query.statement, query.session.bind)
         finally:

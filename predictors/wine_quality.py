@@ -9,11 +9,13 @@ from predictors.base import BasePredictor
 
 class WineQuality(BasePredictor):
     def __init__(self, version=1):
-        BasePredictor.__init__(self, 'wine_quality', version=version)
+        BasePredictor.__init__(self, version=version)
+
+        # ignore 'index' when getting data
+        self.add_ignore_column('index')
 
     def train(self):
-        # get all data except for the column 'index'
-        data = self.get_data('index')
+        data = self.get_data()
 
         y = data['quality']
         X = data.drop('quality', axis=1)
