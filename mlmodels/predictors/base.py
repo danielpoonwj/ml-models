@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+from io import BytesIO
 import pandas as pd
 from sqlalchemy.orm import defer, class_mapper
 
@@ -28,10 +29,12 @@ def camel_to_snake(input_text):
 
 
 class BasePredictor:
-    def __init__(self, version=1):
+    def __init__(self, prediction_field, version=1):
         self.predictor_name = camel_to_snake(self.__class__.__name__)
         self.version = version
+        self.bucket = os.environ['AWS_BUCKET_NAME']
 
+        self.prediction_field = prediction_field
         self.ignore_columns = set()
 
         self.model = getattr(db, '%sModel' % self.__class__.__name__)
@@ -80,20 +83,49 @@ class BasePredictor:
 
         joblib.dump(self.clf, write_path)
 
-        bucket_name = os.environ['AWS_BUCKET_NAME']
-
         s3 = boto3.client('s3')
 
-        key_name = '{predictor_name}/v{version}/{timestamp}.pkl'.format(
-            predictor_name=self.predictor_name,
-            version=self.version,
+        key_name = '{s3_prefix}/{timestamp}.pkl'.format(
+            s3_prefix=self._s3_prefix(),
             timestamp=current_timestamp
         )
 
         s3.upload_file(
             write_path,
-            bucket_name,
+            self.bucket,
             key_name
         )
 
         os.remove(write_path)
+
+    def _s3_prefix(self):
+        return '{predictor_name}/v{version}'.format(
+            predictor_name=self.predictor_name,
+            version=self.version
+        )
+
+    def load(self):
+        s3 = boto3.client('s3')
+
+        object_list = s3.list_objects_v2(
+            Bucket=self.bucket,
+            Prefix=self._s3_prefix()
+        ).get('Contents', [])
+
+        object_list.sort(key=lambda x: x.get('Key'), reverse=True)
+        object_key = object_list[0]['Key']
+
+        resp = s3.get_object(
+            Bucket=self.bucket,
+            Key=object_key
+        )
+
+        pickle_buffer = BytesIO(resp['Body'].read())
+
+        self.clf = joblib.load(pickle_buffer)
+
+    def predict(self, entry):
+        assert isinstance(entry, dict)
+        entry = pd.DataFrame([entry])
+
+        return self.clf.predict(entry)[0]

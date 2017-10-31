@@ -9,7 +9,7 @@ from mlmodels.predictors.base import BasePredictor
 
 class WineQuality(BasePredictor):
     def __init__(self, version=1):
-        super().__init__(version=version)
+        super().__init__('quality', version=version)
 
         # ignore 'index' when getting data
         self.add_ignore_column('index')
@@ -17,8 +17,8 @@ class WineQuality(BasePredictor):
     def train(self):
         data = self.get_data()
 
-        y = data['quality']
-        X = data.drop('quality', axis=1)
+        y = data[self.prediction_field]
+        X = data.drop(self.prediction_field, axis=1)
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=123, stratify=y)
 
