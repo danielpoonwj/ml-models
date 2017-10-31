@@ -61,7 +61,7 @@ class BasePredictor:
 
         return data
 
-    def save(self, upload_s3=True):
+    def save(self):
         """
         Save trained timestamped model
         """
@@ -80,19 +80,20 @@ class BasePredictor:
 
         joblib.dump(self.clf, write_path)
 
-        if upload_s3:
-            bucket_name = os.environ['AWS_BUCKET_NAME']
+        bucket_name = os.environ['AWS_BUCKET_NAME']
 
-            s3 = boto3.client('s3')
+        s3 = boto3.client('s3')
 
-            key_name = '{predictor_name}/v{version}/{timestamp}.pkl'.format(
-                predictor_name=self.predictor_name,
-                version=self.version,
-                timestamp=current_timestamp
-            )
+        key_name = '{predictor_name}/v{version}/{timestamp}.pkl'.format(
+            predictor_name=self.predictor_name,
+            version=self.version,
+            timestamp=current_timestamp
+        )
 
-            s3.upload_file(
-                write_path,
-                bucket_name,
-                key_name
-            )
+        s3.upload_file(
+            write_path,
+            bucket_name,
+            key_name
+        )
+
+        os.remove(write_path)
