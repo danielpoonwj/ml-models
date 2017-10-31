@@ -13,5 +13,6 @@ setup(
     author="Daniel Poon",
     url="http://github.com/danielpoonwj/ml-models",
     packages=find_packages(),
-    install_requires=REQUIREMENTS
+    install_requires=REQUIREMENTS,
+    zip_safe=False
 )
