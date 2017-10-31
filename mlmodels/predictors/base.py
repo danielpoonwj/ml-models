@@ -40,6 +40,7 @@ class BasePredictor:
         self.model = getattr(db, '%sModel' % self.__class__.__name__)
 
         self.clf = None
+        self.clf_version = None
 
     def add_ignore_column(self, column_name):
         self.ignore_columns.add(column_name)
@@ -85,10 +86,12 @@ class BasePredictor:
 
         s3 = boto3.client('s3')
 
-        key_name = '{s3_prefix}/{timestamp}.pkl'.format(
+        self.clf_version = '{s3_prefix}/{timestamp}'.format(
             s3_prefix=self._s3_prefix(),
             timestamp=current_timestamp
         )
+
+        key_name = '%s.pkl' % self.clf_version
 
         s3.upload_file(
             write_path,
@@ -114,6 +117,8 @@ class BasePredictor:
 
         object_list.sort(key=lambda x: x.get('Key'), reverse=True)
         object_key = object_list[0]['Key']
+
+        self.clf_version = object_key.replace('.pkl', '')
 
         resp = s3.get_object(
             Bucket=self.bucket,
