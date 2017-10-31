@@ -9,10 +9,13 @@ from sklearn.externals import joblib
 
 import boto3
 
-from models import Session
-import models.db
+from mlmodels.models import Session, db
 
-from predictors import OUTPUT_DIR
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+OUTPUT_DIR = os.path.join(CURRENT_DIR, 'tmp')
+
+if not os.path.exists(OUTPUT_DIR):
+    os.mkdir(OUTPUT_DIR)
 
 
 def camel_to_snake(input_text):
@@ -31,10 +34,7 @@ class BasePredictor:
 
         self.ignore_columns = set()
 
-        self.model = getattr(
-            models.db,
-            '%sModel' % self.__class__.__name__
-        )
+        self.model = getattr(db, '%sModel' % self.__class__.__name__)
 
         self.clf = None
 

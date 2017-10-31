@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Float, Integer
 
-from models import Base
+from mlmodels.models import Base
 
 
 class WineQualityModel(Base):

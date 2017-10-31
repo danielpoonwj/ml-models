@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import GridSearchCV
 
-from predictors.base import BasePredictor
+from mlmodels.predictors.base import BasePredictor
 
 
 class WineQuality(BasePredictor):
