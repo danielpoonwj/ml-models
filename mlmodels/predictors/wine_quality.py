@@ -9,7 +9,7 @@ from mlmodels.predictors.base import BasePredictor
 
 class WineQuality(BasePredictor):
     def __init__(self, version=1):
-        BasePredictor.__init__(self, version=version)
+        super().__init__(version=version)
 
         # ignore 'index' when getting data
         self.add_ignore_column('index')
