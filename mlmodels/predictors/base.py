@@ -12,12 +12,6 @@ import boto3
 
 from mlmodels.models import Session, db
 
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-OUTPUT_DIR = os.path.join(CURRENT_DIR, 'tmp')
-
-if not os.path.exists(OUTPUT_DIR):
-    os.mkdir(OUTPUT_DIR)
-
 
 def camel_to_snake(input_text):
     temp_list = []
@@ -41,6 +35,11 @@ class BasePredictor:
 
         self.clf = None
         self.clf_version = None
+
+        self.s3_prefix = '{predictor_name}/v{version}'.format(
+            predictor_name=self.predictor_name,
+            version=self.version
+        )
 
     def add_ignore_column(self, column_name):
         self.ignore_columns.add(column_name)
@@ -72,52 +71,44 @@ class BasePredictor:
 
         assert isinstance(self.clf, BaseEstimator)
 
-        current_timestamp = int(datetime.timestamp(datetime.now()))
+        file_buffer = BytesIO()
+        joblib.dump(self.clf, file_buffer)
+        file_buffer.seek(0)
 
-        file_name = '{predictor_name}_v{version}_{timestamp}.pkl'.format(
-            predictor_name=self.predictor_name,
-            version=self.version,
-            timestamp=current_timestamp
-        )
-
-        write_path = os.path.join(OUTPUT_DIR, file_name)
-
-        joblib.dump(self.clf, write_path)
-
-        s3 = boto3.client('s3')
+        s3 = boto3.resource('s3')
 
         self.clf_version = '{s3_prefix}/{timestamp}'.format(
-            s3_prefix=self._s3_prefix(),
-            timestamp=current_timestamp
+            s3_prefix=self.s3_prefix,
+            timestamp=int(datetime.timestamp(datetime.now()))
         )
 
         key_name = '%s.pkl' % self.clf_version
 
-        s3.upload_file(
-            write_path,
-            self.bucket,
-            key_name
+        s3.Bucket(self.bucket).put_object(
+            Key=key_name,
+            Body=file_buffer
         )
 
-        os.remove(write_path)
-
-    def _s3_prefix(self):
-        return '{predictor_name}/v{version}'.format(
-            predictor_name=self.predictor_name,
-            version=self.version
-        )
-
-    def load(self):
+    def get_latest_key(self, to_underscore=False):
         s3 = boto3.client('s3')
 
         object_list = s3.list_objects_v2(
             Bucket=self.bucket,
-            Prefix=self._s3_prefix()
+            Prefix=self.s3_prefix
         ).get('Contents', [])
 
-        object_list.sort(key=lambda x: x.get('Key'), reverse=True)
-        object_key = object_list[0]['Key']
+        object_list.sort(key=lambda x: x.get('Key'))
+        object_key = object_list.pop()['Key']
 
+        if to_underscore:
+            object_key = object_key.replace('/', '_')
+
+        return object_key
+
+    def load(self):
+        s3 = boto3.client('s3')
+
+        object_key = self.get_latest_key()
         self.clf_version = object_key.replace('.pkl', '')
 
         resp = s3.get_object(
@@ -126,7 +117,6 @@ class BasePredictor:
         )
 
         pickle_buffer = BytesIO(resp['Body'].read())
-
         self.clf = joblib.load(pickle_buffer)
 
     def predict(self, entry):
