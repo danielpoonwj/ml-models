@@ -1,3 +1,7 @@
+import os
+
+from sqlalchemy import create_engine
+
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
@@ -6,6 +10,10 @@ from sklearn.model_selection import GridSearchCV
 
 from mlmodels.predictors.base import BasePredictor
 
+# reference mock sqlite db
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+db_path = os.path.join(os.path.dirname(CURRENT_DIR), 'models', 'mock.db')
+
 
 class WineQuality(BasePredictor):
     def __init__(self, version=1):
@@ -13,6 +21,9 @@ class WineQuality(BasePredictor):
 
         # ignore 'index' when getting data
         self.add_ignore_column('index')
+
+        # set db engine to sqlite db
+        self.engine = create_engine('sqlite:////%s' % db_path)
 
     def train(self):
         data = self.get_data()

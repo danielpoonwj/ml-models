@@ -3,6 +3,7 @@ from datetime import datetime
 
 from io import BytesIO
 import pandas as pd
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import defer, class_mapper
 
 from sklearn.base import BaseEstimator
@@ -10,7 +11,7 @@ from sklearn.externals import joblib
 
 import boto3
 
-from mlmodels.models import Session, db
+from mlmodels.models import db
 
 
 def camel_to_snake(input_text):
@@ -30,6 +31,7 @@ class BasePredictor:
         self.prediction_field = prediction_field
         self.ignore_columns = set()
 
+        self.engine = None
         self.model = getattr(db, '%sModel' % self.__class__.__name__)
 
         self.clf = None
@@ -64,6 +66,11 @@ class BasePredictor:
         }
 
     def get_data(self):
+        assert self.engine is not None
+
+        Session = sessionmaker()
+        Session.configure(bind=self.engine)
+
         session = Session()
         try:
             query = session \

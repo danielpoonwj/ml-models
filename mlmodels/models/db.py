@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Float, Integer
+from sqlalchemy.ext.declarative import declarative_base
 
-from mlmodels.models import Base
+Base = declarative_base()
 
 
 class WineQualityModel(Base):
