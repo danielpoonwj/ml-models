@@ -3,7 +3,6 @@ from datetime import datetime
 
 from io import BytesIO
 import pandas as pd
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import defer, class_mapper
 
 from sklearn.base import BaseEstimator
@@ -12,7 +11,7 @@ from sklearn.externals import joblib
 import boto3
 
 from mlmodels.models import db
-from mlmodels.utils import camel_to_snake
+from mlmodels.utils import camel_to_snake, configure_session
 
 
 class BasePredictor:
@@ -23,7 +22,6 @@ class BasePredictor:
         self.prediction_field = prediction_field
         self.ignore_columns = set()
 
-        self.engine = None
         self.model = getattr(db, '%sModel' % self.__class__.__name__)
 
         self.clf = None
@@ -57,13 +55,9 @@ class BasePredictor:
             if column.name not in self.ignore_columns
         }
 
-    def get_data(self):
-        assert self.engine is not None
+    def get_data(self, engine):
+        session = configure_session(engine)()
 
-        Session = sessionmaker()
-        Session.configure(bind=self.engine)
-
-        session = Session()
         try:
             query = session \
                 .query(self.model) \

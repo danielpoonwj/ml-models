@@ -14,6 +14,7 @@ from mlmodels.utils import time_taken
 # reference mock sqlite db
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 db_path = os.path.join(os.path.dirname(CURRENT_DIR), 'models', 'mock.db')
+engine = create_engine('sqlite:////%s' % db_path)
 
 
 class WineQuality(BasePredictor):
@@ -23,14 +24,11 @@ class WineQuality(BasePredictor):
         # ignore 'index' when getting data
         self.add_ignore_column('index')
 
-        # set db engine to sqlite db
-        self.engine = create_engine('sqlite:////%s' % db_path)
-
     @time_taken
     def train(self):
         print('Training started')
 
-        data = self.get_data()
+        data = self.get_data(engine)
 
         y = data[self.prediction_field]
         X = data.drop(self.prediction_field, axis=1)

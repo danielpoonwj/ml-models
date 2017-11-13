@@ -1,6 +1,8 @@
 from functools import wraps
 from time import time
 
+from sqlalchemy.orm import sessionmaker
+
 
 def camel_to_snake(input_text):
     temp_list = []
@@ -23,3 +25,10 @@ def time_taken(f):
 
         return result
     return wrapper
+
+
+def configure_session(engine):
+    Session = sessionmaker()
+    Session.configure(bind=engine)
+
+    return Session
