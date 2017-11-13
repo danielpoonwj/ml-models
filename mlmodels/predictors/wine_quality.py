@@ -9,6 +9,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import GridSearchCV
 
 from mlmodels.predictors.base import BasePredictor
+from mlmodels.utils import time_taken
 
 # reference mock sqlite db
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -25,7 +26,10 @@ class WineQuality(BasePredictor):
         # set db engine to sqlite db
         self.engine = create_engine('sqlite:////%s' % db_path)
 
+    @time_taken
     def train(self):
+        print('Training started')
+
         data = self.get_data()
 
         y = data[self.prediction_field]

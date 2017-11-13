@@ -12,15 +12,7 @@ from sklearn.externals import joblib
 import boto3
 
 from mlmodels.models import db
-
-
-def camel_to_snake(input_text):
-    temp_list = []
-    for idx, c in enumerate(input_text):
-        if c.isupper() and idx > 0:
-            temp_list.append('_')
-        temp_list.append(c)
-    return ''.join(temp_list).lower()
+from mlmodels.utils import camel_to_snake
 
 
 class BasePredictor:
