@@ -8,7 +8,7 @@ with open(os.path.join(PACKAGE_ROOT, 'requirements.txt'), 'r') as read_file:
 
 setup(
     name='ml-models',
-    version='0.1.0',
+    version='0.2.0',
     description='ML Models',
     author="Daniel Poon",
     url="http://github.com/danielpoonwj/ml-models",
